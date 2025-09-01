@@ -3,181 +3,89 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Quick Vote – Site Redesign</title>
+<title>Vote – Site Redesign</title>
 <style>
-  :root {
-    --bg: #0f1216;
-    --card: #161b22;
-    --text: #e6edf3;
-    --muted: #a3b1c2;
-    --yes: #22c55e;
-    --no: #ef4444;
-    --ring: #2d6cdf;
-  }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
-    display: grid; place-items: center;
-  }
-  .vote-card {
-    width: min(520px, 92vw);
-    border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    box-shadow: 0 8px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    padding: 20px 18px;
-  }
-  .vote-title {
-    font-size: clamp(18px, 2.4vw, 22px);
-    font-weight: 700;
-    line-height: 1.25;
-    margin: 4px 2px 8px;
-    letter-spacing: .2px;
-  }
-  .vote-sub {
-    color: var(--muted); margin: 0 2px 16px; font-size: 14px;
-  }
-  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  button.vote {
-    appearance: none; border: 0; border-radius: 12px; padding: 14px 16px;
-    font-weight: 700; font-size: 16px; cursor: pointer;
-    transition: transform .05s ease, box-shadow .15s ease, filter .2s ease;
-    color: #0b1117;
-    outline: none;
-  }
-  button.vote:focus-visible { box-shadow: 0 0 0 3px var(--ring), 0 0 0 6px rgba(45,108,223,.35); }
-  button.vote:hover { filter: brightness(1.02); transform: translateY(-1px); }
-  button.vote:active { transform: translateY(0); }
-  .yes { background: var(--yes); }
-  .no  { background: var(--no);  color: #fff; }
-  .thanks {
-    margin-top: 14px; padding: 10px 12px; border-radius: 10px;
-    background: rgba(45,108,223,.14); border: 1px solid rgba(45,108,223,.35);
-    font-size: 14px;
-  }
-  .hidden { display: none !important; }
-  .foot { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  body { font-family: sans-serif; background: #111; color: #eee; display: flex; justify-content: center; align-items: center; height: 100vh; }
+  .vote-card { background: #1b1f24; padding: 20px; border-radius: 12px; text-align: center; width: 300px; }
+  .vote-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; }
+  .btn-row { display: flex; gap: 10px; }
+  button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  .yes { background: #22c55e; color: #000; }
+  .no { background: #ef4444; color: #fff; }
+  .thanks { margin-top: 12px; font-size: 14px; color: #ccc; }
 </style>
 </head>
 <body>
-
-<div class="vote-card" role="region" aria-labelledby="vote-heading">
-  <div id="vote-heading" class="vote-title">Should the site have a huge redesign?</div>
-  <p class="vote-sub">You can vote once per device. Choose carefully!</p>
-  <div class="btn-row" id="btnRow">
-    <button id="btnYes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
-    <button id="btnNo"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
+<div class="vote-card">
+  <div class="vote-title">Should the site have a huge redesign?</div>
+  <div class="btn-row">
+    <button id="btnYes" class="yes">👍 Yes</button>
+    <button id="btnNo" class="no">👎 No</button>
   </div>
-  <div id="thanks" class="thanks hidden" role="status" aria-live="polite">
-    Thanks! Your vote was recorded. (You can change your mind later by clearing this site's storage.)
-  </div>
-  <div class="foot">Votes are stored in Firebase for easy counting.</div>
+  <div id="thanks" class="thanks" style="display:none;"></div>
 </div>
 
-<!-- Firebase (CDN, compat API – simplest for Sites/GitHub). Use 11.5.0 as requested. -->
-<script src="https://www.gstatic.com/firebasejs/11.5.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore-compat.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-<script>
-  // === REQUIRED: Paste your Firebase Web App config below ===
-  // You can find this in Firebase Console > Project settings > Your apps (Web).
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    appId: "YOUR_APP_ID"
-    // (The above are sufficient for Firestore – storageBucket, measurementId, etc. are optional)
+    apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
+    authDomain: "votingonredesign.firebaseapp.com",
+    projectId: "votingonredesign",
+    storageBucket: "votingonredesign.firebasestorage.app",
+    messagingSenderId: "66146609429",
+    appId: "1:66146609429:web:34575c54f0a3b78ce7611c",
+    measurementId: "G-FL6RJVCN3Y"
   };
 
-  // Initialize Firebase + Firestore
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  // Poll document where we aggregate tallies.
-  // Collection: polls  Document: site_redesign
-  const pollRef = db.collection("polls").doc("site_redesign");
+  const btnYes = document.getElementById("btnYes");
+  const btnNo = document.getElementById("btnNo");
+  const thanks = document.getElementById("thanks");
 
-  // Local one-vote flag (per browser/device).
-  const LS_KEY = "poll_site_redesign_voted"; // value: "yes" | "no"
-  const voted = localStorage.getItem(LS_KEY);
+  const LS_KEY = "poll_site_redesign_voted";
 
-  const btnRow  = document.getElementById("btnRow");
-  const btnYes  = document.getElementById("btnYes");
-  const btnNo   = document.getElementById("btnNo");
-  const thanks  = document.getElementById("thanks");
-
-  // If already voted, lock UI immediately.
-  if (voted === "yes" || voted === "no") {
-    lockButtons();
-    thanks.classList.remove("hidden");
-    thanks.textContent = `You already voted “${voted.toUpperCase()}”. Thanks!`;
-  }
-
-  // Helpers
-  function lockButtons() {
-    btnYes.disabled = true; btnNo.disabled = true;
-    btnYes.style.opacity = ".65"; btnNo.style.opacity = ".65";
-    btnRow.style.pointerEvents = "none";
-  }
-
-  async function castVote(choice) {
-    // Double-guard to ensure 1 vote
+  async function vote(choice) {
     if (localStorage.getItem(LS_KEY)) return;
 
-    // Optimistic lock UI
-    lockButtons();
-    thanks.classList.remove("hidden");
-    thanks.textContent = "Recording your vote…";
-
+    const pollRef = doc(db, "polls", "site_redesign");
     try {
-      // Atomic increment for either "yes" or "no" field.
-      // Firestore will create the doc if it doesn't exist.
-      const inc = firebase.firestore.FieldValue.increment(1);
-      const data = (choice === "yes") ? { yes: inc } : { no: inc };
-      await pollRef.set(data, { merge: true });
+      await setDoc(pollRef, { yes: 0, no: 0 }, { merge: true });
+      await updateDoc(pollRef, { [choice]: increment(1) });
 
       localStorage.setItem(LS_KEY, choice);
-      thanks.textContent = `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`;
+      thanks.style.display = "block";
+      thanks.textContent = `Thanks! You voted "${choice.toUpperCase()}".`;
+      btnYes.disabled = true;
+      btnNo.disabled = true;
     } catch (err) {
-      // On error, unlock UI so the user can retry.
-      btnYes.disabled = false; btnNo.disabled = false;
-      btnRow.style.pointerEvents = "auto";
-      thanks.textContent = "Hmm, something went wrong. Please try again in a moment.";
-      console.error("Vote error:", err);
-      // Make sure we don't accidentally record multiple votes if retrying.
+      console.error("Error voting:", err);
+      thanks.style.display = "block";
+      thanks.textContent = "Error recording vote.";
     }
   }
 
-  btnYes.addEventListener("click", () => castVote("yes"));
-  btnNo .addEventListener("click", () => castVote("no"));
+  btnYes.addEventListener("click", () => vote("yes"));
+  btnNo.addEventListener("click", () => vote("no"));
 
-  // Leave warning (per your standard preference)
-  window.onbeforeunload = function (e) {
-    // Only warn if user hasn't voted yet (less annoying).
+  // Restore disabled state if already voted
+  const prev = localStorage.getItem(LS_KEY);
+  if (prev) {
+    btnYes.disabled = true;
+    btnNo.disabled = true;
+    thanks.style.display = "block";
+    thanks.textContent = `You already voted "${prev.toUpperCase()}".`;
+  }
+
+  // Warn before leaving if not voted
+  window.onbeforeunload = function() {
     if (!localStorage.getItem(LS_KEY)) {
-      const msg = "Are you sure you want to leave? Your vote hasn't been submitted.";
-      (e || window.event).returnValue = msg;
-      return msg;
+      return "Are you sure you want to leave? Your vote hasn't been submitted.";
     }
   };
 </script>
-
-<!--
-FIRESTORE SECURITY (configure in Firebase Console > Firestore > Rules):
-For a quick start while testing, you can temporarily allow public writes. For production,
-prefer authenticated writes or custom security rules.
-
-Example simple rule (testing only, not production):
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /polls/{poll} {
-      allow read: if true;
-      allow write: if request.time < timestamp.date(2099,1,1);
-    }
-  }
-}
--->
 </body>
 </html>
