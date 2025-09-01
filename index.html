@@ -16,9 +16,8 @@
   }
   .card{
     width:min(520px,92vw);padding:22px 18px;border-radius:18px;
-    background:
-      radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
-      linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    background: radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
+               linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
   }
@@ -27,8 +26,7 @@
   .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   button.vote{
     border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer;
-    transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none;
-    color:#0b1117;
+    transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none; color:#0b1117;
   }
   button.vote:focus-visible{box-shadow:0 0 0 3px var(--ring),0 0 0 6px rgba(45,108,223,.35)}
   button.vote:hover{filter:brightness(1.03);transform:translateY(-1px)}
@@ -52,12 +50,11 @@
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 </div>
 
-<!-- Firebase v12 ES modules — works on Google Sites & GitHub Pages -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getFirestore, doc, runTransaction, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getFirestore, doc, runTransaction, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // === CONNECTED TO YOUR REAL PROJECT ===
+  // --- YOUR PROJECT (real values) ---
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -101,9 +98,18 @@
     msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
   }
 
+  // If already voted, lock
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
+  // Ensure the tally doc exists (allowed by rules; reads allowed on /polls)
+  (async () => {
+    const tallyDoc = doc(db, "polls", POLL_ID);
+    const snap = await getDoc(tallyDoc);
+    if (!snap.exists()) await setDoc(tallyDoc, { yes: 0, no: 0 });
+  })().catch(console.error);
+
+  // Try to finish any saved pending vote (no reads to votes/*)
   const pendingRaw = localStorage.getItem(PENDING_KEY);
   if (!already && pendingRaw){
     const { choice } = JSON.parse(pendingRaw);
@@ -127,27 +133,29 @@
       localStorage.removeItem(PENDING_KEY);
       lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
     } catch (e){
-      showWarn("Network issue — your vote is saved locally and will upload when you return.");
+      if (e.code === "permission-denied") {
+        // Most likely: already voted (create blocked by rules)
+        localStorage.setItem(LOCK_KEY, choice); // prevent spam locally
+        lock(choice, "Looks like you already voted on this device.");
+      } else {
+        showWarn("Network issue — your vote is saved locally and will upload when you return.");
+      }
       console.error("Vote upload failed:", e);
     }
   }
 
-  // Transaction that matches strict Option-A security rules
+  // Transaction WITHOUT reading votes/* (complies with rules)
   async function finalizeUpload(choice){
     const voteDoc  = doc(db, "polls", POLL_ID, "votes", deviceId);
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
-      const existingVote = await tx.get(voteDoc);
-      if (existingVote.exists()) return; // already voted on this device
-
-      const tallySnap = await tx.get(tallyDoc);
-      if (!tallySnap.exists()) {
-        tx.set(tallyDoc, { yes: 0, no: 0 }); // create once
-      }
-
+      // No tx.get(voteDoc) here (rules disallow reads on votes/*)
+      // Create per-device vote (allowed once); will fail if it already exists.
       tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
-      tx.update(tallyDoc, { [choice]: increment(1) }); // +1 to yes or no
+
+      // Increment exactly one counter (rules allow +1 only)
+      tx.update(tallyDoc, { [choice]: increment(1) });
     });
   }
 
