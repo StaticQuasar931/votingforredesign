@@ -15,19 +15,34 @@
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   }
   .card{
-    position:relative;
-    width:min(517px,92vw); /* ~3px narrower than before */
-    padding:22px 18px;
+    width:min(517px,92vw); /* ~3px narrower */
+    padding:18px; /* tighter to fit nicely */
     border-radius:18px;
     background: radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
                linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
-    text-align:center;
   }
-  .title{font-size:clamp(18px,2.4vw,22px);font-weight:800;letter-spacing:.2px;margin:4px 2px 8px}
-  .sub{color:var(--muted);margin:0 2px 16px;font-size:14px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  /* Header row ensures no overlap */
+  .header{
+    display:flex; align-items:center; gap:12px;
+  }
+  .title{
+    flex:1 1 auto; min-width:0; /* allow shrinking without overlap */
+    font-size:clamp(18px,2.4vw,22px); font-weight:800; letter-spacing:.2px; margin:0;
+    line-height:1.25;
+  }
+  .suggest-btn{
+    flex:0 0 auto;
+    padding:6px 10px; font-size:12px; font-weight:600;
+    border-radius:8px; background:var(--link); color:#fff; border:none; cursor:pointer;
+    transition:background .15s ease, transform .06s ease;
+    white-space:nowrap;
+  }
+  .suggest-btn:hover{background:#2563eb;transform:translateY(-1px)}
+  .suggest-btn:active{transform:translateY(0)}
+  .sub{color:var(--muted);margin:8px 0 14px;font-size:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   button.vote{
     border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer;
     transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none; color:#0b1117;
@@ -37,39 +52,34 @@
   button.vote:active{transform:translateY(0)}
   .yes{background:var(--yes)}
   .no{background:var(--no);color:#fff}
-  .msg{margin-top:14px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
+  .msg{margin-top:12px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
   .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
-  .suggest-btn{
-    position:absolute;
-    top:10px;
-    right:10px;
-    padding:6px 10px;
-    font-size:12px;
-    font-weight:600;
-    border-radius:8px;
-    background:var(--link);
-    color:#fff;
-    border:none;
-    cursor:pointer;
-    transition:background .15s ease, transform .06s ease;
+
+  /* Extra safety so small screens don't wrap awkwardly */
+  @media (max-width: 360px){
+    .suggest-btn{padding:6px 8px; font-size:11px}
+    .title{font-size:18px}
   }
-  .suggest-btn:hover{background:#2563eb;transform:translateY(-1px)}
-  .suggest-btn:active{transform:translateY(0)}
 </style>
 </head>
 <body>
 
 <div class="card" role="region" aria-labelledby="h">
-  <a href="https://sites.google.com/view/staticquasar931/google-form" target="_blank" rel="noopener">
-    <button class="suggest-btn" type="button">💡 Suggest Changes</button>
-  </a>
-  <div id="h" class="title">Should the site have a huge redesign?</div>
+  <div class="header">
+    <h1 id="h" class="title">Should the site have a huge redesign?</h1>
+    <a href="https://sites.google.com/view/staticquasar931/google-form" target="_blank" rel="noopener">
+      <button class="suggest-btn" type="button">💡 Suggest Changes</button>
+    </a>
+  </div>
+
   <p class="sub">You can vote once per device.</p>
+
   <div class="row">
     <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
     <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
   </div>
+
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 </div>
 
@@ -121,6 +131,7 @@
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
+  // Ensure the tally doc exists (reads are allowed on /polls in Option A rules)
   (async () => {
     const tallyDoc = doc(db, "polls", POLL_ID);
     const snap = await getDoc(tallyDoc);
@@ -165,6 +176,7 @@
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
+      // No reads to votes/* to satisfy rules
       tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
       tx.update(tallyDoc, { [choice]: increment(1) });
     });
