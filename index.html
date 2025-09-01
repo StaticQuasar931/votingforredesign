@@ -3,32 +3,63 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Vote – Site Redesign</title>
+<title>Quick Vote – Redesign</title>
 <style>
-  body { font-family: sans-serif; background: #111; color: #eee; display: flex; justify-content: center; align-items: center; height: 100vh; }
-  .vote-card { background: #1b1f24; padding: 20px; border-radius: 12px; text-align: center; width: 300px; }
-  .vote-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; }
-  .btn-row { display: flex; gap: 10px; }
-  button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-  .yes { background: #22c55e; color: #000; }
-  .no { background: #ef4444; color: #fff; }
-  .thanks { margin-top: 12px; font-size: 14px; color: #ccc; }
+  :root{
+    --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
+    --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;
+  }
+  html,body{height:100%}
+  body{
+    margin:0;display:grid;place-items:center;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+  }
+  .card{
+    width:min(520px,92vw);padding:22px 18px;border-radius:18px;
+    background:
+      radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
+      linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .title{font-size:clamp(18px,2.4vw,22px);font-weight:800;letter-spacing:.2px;margin:4px 2px 8px}
+  .sub{color:var(--muted);margin:0 2px 16px;font-size:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  button.vote{
+    border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer;
+    transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none;
+    color:#0b1117;
+  }
+  button.vote:focus-visible{box-shadow:0 0 0 3px var(--ring),0 0 0 6px rgba(45,108,223,.35)}
+  button.vote:hover{filter:brightness(1.03);transform:translateY(-1px)}
+  button.vote:active{transform:translateY(0)}
+  .yes{background:var(--yes)}
+  .no{background:var(--no);color:#fff}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
+  .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
+  .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
 </style>
 </head>
 <body>
-<div class="vote-card">
-  <div class="vote-title">Should the site have a huge redesign?</div>
-  <div class="btn-row">
-    <button id="btnYes" class="yes">👍 Yes</button>
-    <button id="btnNo" class="no">👎 No</button>
+
+<div class="card" role="region" aria-labelledby="h">
+  <div id="h" class="title">Should the site have a huge redesign?</div>
+  <p class="sub">You can vote once per device.</p>
+  <div class="row">
+    <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
+    <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
   </div>
-  <div id="thanks" class="thanks" style="display:none;"></div>
+  <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 </div>
 
 <script type="module">
+  // Firebase v12 ES modules (works on Google Sites & GitHub Pages)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getFirestore, doc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, updateDoc, increment, runTransaction
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+  // --- YOUR PROJECT ---
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -39,51 +70,111 @@
     measurementId: "G-FL6RJVCN3Y"
   };
 
+  // --- INIT ---
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  const db  = getFirestore(app);
 
-  const btnYes = document.getElementById("btnYes");
-  const btnNo = document.getElementById("btnNo");
-  const thanks = document.getElementById("thanks");
+  // --- DOM refs ---
+  const btnYes = document.getElementById("yes");
+  const btnNo  = document.getElementById("no");
+  const msg    = document.getElementById("msg");
 
-  const LS_KEY = "poll_site_redesign_voted";
+  // --- IDs & local memory (pre-save to prevent "reload spam") ---
+  const DEVICE_KEY = "qr_device_id";
+  const PENDING_KEY = "qr_pending_vote"; // {choice, at}
+  const LOCK_KEY = "qr_voted_choice";    // "yes" | "no"
+  const POLL_ID = "site_redesign";
 
-  async function vote(choice) {
-    if (localStorage.getItem(LS_KEY)) return;
+  // Simple UUIDv4
+  const uuid = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
 
-    const pollRef = doc(db, "polls", "site_redesign");
+  const deviceId = (() => {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id){ id = uuid(); localStorage.setItem(DEVICE_KEY,id); }
+    return id;
+  })();
+
+  // UI helpers
+  function lock(choice, text){
+    btnYes.disabled = true; btnNo.disabled = true;
+    btnYes.style.opacity=".65"; btnNo.style.opacity=".65";
+    msg.className = "msg ok"; msg.style.display="block";
+    msg.textContent = text || `You already voted “${choice.toUpperCase()}”.`;
+  }
+  function showWarn(text){
+    msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
+  }
+
+  // If we already voted, lock immediately
+  const already = localStorage.getItem(LOCK_KEY);
+  if (already){ lock(already); }
+
+  // If there is a pending vote (saved before upload), try to finish it now
+  const pendingRaw = localStorage.getItem(PENDING_KEY);
+  if (!already && pendingRaw){
+    const { choice } = JSON.parse(pendingRaw);
+    finalizeUpload(choice).catch(()=>showWarn("Reconnecting… your vote will finish soon."));
+  }
+
+  // Main vote handler:
+  async function handleVote(choice){
+    // One vote per device (UI guard)
+    if (localStorage.getItem(LOCK_KEY)) return;
+
+    // 1) Save *locally first* (memory-save) before any network
+    localStorage.setItem(PENDING_KEY, JSON.stringify({ choice, at: Date.now() }));
+    msg.style.display = "block";
+    msg.className = "msg ok";
+    msg.textContent = "Saving your choice…";
+
+    // 2) Disable buttons immediately to prevent spamming
+    btnYes.disabled = true; btnNo.disabled = true;
+
+    // 3) Attempt to upload (with strong dedupe on server docs)
     try {
-      await setDoc(pollRef, { yes: 0, no: 0 }, { merge: true });
-      await updateDoc(pollRef, { [choice]: increment(1) });
-
-      localStorage.setItem(LS_KEY, choice);
-      thanks.style.display = "block";
-      thanks.textContent = `Thanks! You voted "${choice.toUpperCase()}".`;
-      btnYes.disabled = true;
-      btnNo.disabled = true;
-    } catch (err) {
-      console.error("Error voting:", err);
-      thanks.style.display = "block";
-      thanks.textContent = "Error recording vote.";
+      await finalizeUpload(choice);
+      localStorage.setItem(LOCK_KEY, choice);
+      localStorage.removeItem(PENDING_KEY);
+      lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
+    } catch (e){
+      // Keep pending flag so it can auto-resume on next load
+      btnYes.disabled = true; btnNo.disabled = true;
+      showWarn("Network issue — your vote is saved locally and will upload when you return.");
+      console.error("Vote upload failed:", e);
     }
   }
 
-  btnYes.addEventListener("click", () => vote("yes"));
-  btnNo.addEventListener("click", () => vote("no"));
+  // Performs an idempotent upload:
+  // - Creates /votes/{deviceId} once (so same device can't double-vote)
+  // - Increments aggregate counters in /polls/{POLL_ID}
+  async function finalizeUpload(choice){
+    const voteDoc = doc(db, "polls", POLL_ID, "votes", deviceId);
+    const tallyDoc = doc(db, "polls", POLL_ID);
 
-  // Restore disabled state if already voted
-  const prev = localStorage.getItem(LS_KEY);
-  if (prev) {
-    btnYes.disabled = true;
-    btnNo.disabled = true;
-    thanks.style.display = "block";
-    thanks.textContent = `You already voted "${prev.toUpperCase()}".`;
+    await runTransaction(db, async (tx) => {
+      const existing = await tx.get(voteDoc);
+      if (existing.exists()){
+        // Already recorded for this device — nothing to increment
+        return;
+      }
+      // Create the per-device vote record
+      tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
+      // Increment proper counter atomically
+      tx.set(tallyDoc, { yes: 0, no: 0 }, { merge: true });
+      tx.update(tallyDoc, { [choice]: increment(1) });
+    });
   }
 
-  // Warn before leaving if not voted
-  window.onbeforeunload = function() {
-    if (!localStorage.getItem(LS_KEY)) {
-      return "Are you sure you want to leave? Your vote hasn't been submitted.";
+  // Events
+  btnYes.addEventListener("click", () => handleVote("yes"));
+  btnNo .addEventListener("click", () => handleVote("no"));
+
+  // Leave guard (only if not yet fully recorded)
+  window.onbeforeunload = function(){
+    if (!localStorage.getItem(LOCK_KEY) && localStorage.getItem(PENDING_KEY)){
+      return "Your vote is saved locally and uploading. Leave now?";
     }
   };
 </script>
