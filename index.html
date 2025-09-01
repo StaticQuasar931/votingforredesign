@@ -52,14 +52,14 @@
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 </div>
 
+<!-- Firebase v12 ES modules — works on Google Sites & GitHub Pages -->
 <script type="module">
-  // Firebase v12 ES modules (works on Google Sites & GitHub Pages)
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import {
-    getFirestore, doc, getDoc, setDoc, updateDoc, increment, runTransaction
+    getFirestore, doc, getDoc, setDoc, updateDoc, runTransaction, increment
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // --- YOUR PROJECT ---
+  // --- YOUR PROJECT CONFIG (from Firebase console) ---
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -79,13 +79,13 @@
   const btnNo  = document.getElementById("no");
   const msg    = document.getElementById("msg");
 
-  // --- IDs & local memory (pre-save to prevent "reload spam") ---
-  const DEVICE_KEY = "qr_device_id";
+  // --- IDs & local memory (pre-save to prevent spam/reloads) ---
+  const DEVICE_KEY  = "qr_device_id";
   const PENDING_KEY = "qr_pending_vote"; // {choice, at}
-  const LOCK_KEY = "qr_voted_choice";    // "yes" | "no"
-  const POLL_ID = "site_redesign";
+  const LOCK_KEY    = "qr_voted_choice"; // "yes" | "no"
+  const POLL_ID     = "site_redesign";
 
-  // Simple UUIDv4
+  // UUIDv4 (compact)
   const uuid = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
@@ -107,63 +107,64 @@
     msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
   }
 
-  // If we already voted, lock immediately
+  // If already voted, lock immediately
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
-  // If there is a pending vote (saved before upload), try to finish it now
+  // If there is a pending vote saved locally, try to finish it now
   const pendingRaw = localStorage.getItem(PENDING_KEY);
   if (!already && pendingRaw){
     const { choice } = JSON.parse(pendingRaw);
-    finalizeUpload(choice).catch(()=>showWarn("Reconnecting… your vote will finish soon."));
+    finalizeUpload(choice).then(()=>{
+      localStorage.setItem(LOCK_KEY, choice);
+      localStorage.removeItem(PENDING_KEY);
+      lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
+    }).catch(()=>showWarn("Reconnecting… your vote will upload when possible."));
   }
 
-  // Main vote handler:
+  // Main vote handler
   async function handleVote(choice){
-    // One vote per device (UI guard)
-    if (localStorage.getItem(LOCK_KEY)) return;
+    if (localStorage.getItem(LOCK_KEY)) return; // one vote per device (UI guard)
 
-    // 1) Save *locally first* (memory-save) before any network
+    // 1) Save locally BEFORE any network (prevents reload scamming)
     localStorage.setItem(PENDING_KEY, JSON.stringify({ choice, at: Date.now() }));
-    msg.style.display = "block";
-    msg.className = "msg ok";
-    msg.textContent = "Saving your choice…";
-
-    // 2) Disable buttons immediately to prevent spamming
+    msg.style.display = "block"; msg.className = "msg ok"; msg.textContent = "Saving your choice…";
     btnYes.disabled = true; btnNo.disabled = true;
 
-    // 3) Attempt to upload (with strong dedupe on server docs)
     try {
       await finalizeUpload(choice);
       localStorage.setItem(LOCK_KEY, choice);
       localStorage.removeItem(PENDING_KEY);
       lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
     } catch (e){
-      // Keep pending flag so it can auto-resume on next load
-      btnYes.disabled = true; btnNo.disabled = true;
+      // Keep pending so it can auto-resume next visit
       showWarn("Network issue — your vote is saved locally and will upload when you return.");
       console.error("Vote upload failed:", e);
     }
   }
 
-  // Performs an idempotent upload:
-  // - Creates /votes/{deviceId} once (so same device can't double-vote)
-  // - Increments aggregate counters in /polls/{POLL_ID}
+  // Idempotent upload that satisfies strict Option-A rules:
+  // - Creates /polls/{POLL_ID} once (if missing)
+  // - Creates /polls/{POLL_ID}/votes/{deviceId} once
+  // - Increments exactly one field (yes or no) by +1
   async function finalizeUpload(choice){
-    const voteDoc = doc(db, "polls", POLL_ID, "votes", deviceId);
+    const voteDoc  = doc(db, "polls", POLL_ID, "votes", deviceId);
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
-      const existing = await tx.get(voteDoc);
-      if (existing.exists()){
-        // Already recorded for this device — nothing to increment
-        return;
+      // Block duplicate vote from same device
+      const existingVote = await tx.get(voteDoc);
+      if (existingVote.exists()) return;
+
+      // Ensure the totals doc exists ONCE (create only if missing)
+      const tallySnap = await tx.get(tallyDoc);
+      if (!tallySnap.exists()) {
+        tx.set(tallyDoc, { yes: 0, no: 0 }); // create (allowed)
       }
-      // Create the per-device vote record
+
+      // Create per-device vote and increment one counter
       tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
-      // Increment proper counter atomically
-      tx.set(tallyDoc, { yes: 0, no: 0 }, { merge: true });
-      tx.update(tallyDoc, { [choice]: increment(1) });
+      tx.update(tallyDoc, { [choice]: increment(1) }); // strict +1
     });
   }
 
