@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
-    --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;
+    --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;--link:#3b82f6;
   }
   html,body{height:100%}
   body{
@@ -20,10 +20,11 @@
                linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+    text-align:center;
   }
   .title{font-size:clamp(18px,2.4vw,22px);font-weight:800;letter-spacing:.2px;margin:4px 2px 8px}
   .sub{color:var(--muted);margin:0 2px 16px;font-size:14px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
   button.vote{
     border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer;
     transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none; color:#0b1117;
@@ -36,6 +37,13 @@
   .msg{margin-top:14px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
   .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
+  .suggest-btn{
+    margin-top:12px;padding:10px 16px;font-size:15px;font-weight:600;
+    border-radius:12px;background:var(--link);color:#fff;border:none;cursor:pointer;
+    transition:background .15s ease, transform .06s ease;
+  }
+  .suggest-btn:hover{background:#2563eb;transform:translateY(-1px)}
+  .suggest-btn:active{transform:translateY(0)}
 </style>
 </head>
 <body>
@@ -48,13 +56,15 @@
     <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
   </div>
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
+  <a href="https://sites.google.com/view/staticquasar931/google-form" target="_blank" rel="noopener">
+    <button class="suggest-btn" type="button">💡 Suggest redesign changes</button>
+  </a>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getFirestore, doc, runTransaction, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // --- YOUR PROJECT (real values) ---
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -68,15 +78,13 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
-  // DOM
   const btnYes = document.getElementById("yes");
   const btnNo  = document.getElementById("no");
   const msg    = document.getElementById("msg");
 
-  // Local memory / ids
   const DEVICE_KEY  = "qr_device_id";
-  const PENDING_KEY = "qr_pending_vote"; // {choice, at}
-  const LOCK_KEY    = "qr_voted_choice"; // "yes" | "no"
+  const PENDING_KEY = "qr_pending_vote";
+  const LOCK_KEY    = "qr_voted_choice";
   const POLL_ID     = "site_redesign";
 
   const uuid = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>
@@ -98,18 +106,15 @@
     msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
   }
 
-  // If already voted, lock
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
-  // Ensure the tally doc exists (allowed by rules; reads allowed on /polls)
   (async () => {
     const tallyDoc = doc(db, "polls", POLL_ID);
     const snap = await getDoc(tallyDoc);
     if (!snap.exists()) await setDoc(tallyDoc, { yes: 0, no: 0 });
   })().catch(console.error);
 
-  // Try to finish any saved pending vote (no reads to votes/*)
   const pendingRaw = localStorage.getItem(PENDING_KEY);
   if (!already && pendingRaw){
     const { choice } = JSON.parse(pendingRaw);
@@ -134,8 +139,7 @@
       lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
     } catch (e){
       if (e.code === "permission-denied") {
-        // Most likely: already voted (create blocked by rules)
-        localStorage.setItem(LOCK_KEY, choice); // prevent spam locally
+        localStorage.setItem(LOCK_KEY, choice);
         lock(choice, "Looks like you already voted on this device.");
       } else {
         showWarn("Network issue — your vote is saved locally and will upload when you return.");
@@ -144,17 +148,12 @@
     }
   }
 
-  // Transaction WITHOUT reading votes/* (complies with rules)
   async function finalizeUpload(choice){
     const voteDoc  = doc(db, "polls", POLL_ID, "votes", deviceId);
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
-      // No tx.get(voteDoc) here (rules disallow reads on votes/*)
-      // Create per-device vote (allowed once); will fail if it already exists.
       tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
-
-      // Increment exactly one counter (rules allow +1 only)
       tx.update(tallyDoc, { [choice]: increment(1) });
     });
   }
