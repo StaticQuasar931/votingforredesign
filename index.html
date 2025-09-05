@@ -15,32 +15,27 @@
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   }
   .card{
-    width:min(517px,92vw); /* ~3px narrower */
-    padding:18px; /* tighter to fit nicely */
+    width:min(517px,92vw); /* a touch narrower for fit */
+    padding:18px;
     border-radius:18px;
     background: radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
                linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
   }
-  /* Header row ensures no overlap */
-  .header{
-    display:flex; align-items:center; gap:12px;
-  }
+  .header{display:flex; align-items:center; gap:12px}
   .title{
-    flex:1 1 auto; min-width:0; /* allow shrinking without overlap */
-    font-size:clamp(18px,2.4vw,22px); font-weight:800; letter-spacing:.2px; margin:0;
-    line-height:1.25;
+    flex:1 1 auto; min-width:0;
+    font-size:clamp(18px,2.4vw,22px); font-weight:800; letter-spacing:.2px; margin:0; line-height:1.25;
   }
-  .suggest-btn{
+  .suggest-top{
     flex:0 0 auto;
     padding:6px 10px; font-size:12px; font-weight:600;
     border-radius:8px; background:var(--link); color:#fff; border:none; cursor:pointer;
-    transition:background .15s ease, transform .06s ease;
-    white-space:nowrap;
+    transition:background .15s ease, transform .06s ease; white-space:nowrap;
   }
-  .suggest-btn:hover{background:#2563eb;transform:translateY(-1px)}
-  .suggest-btn:active{transform:translateY(0)}
+  .suggest-top:hover{background:#2563eb;transform:translateY(-1px)}
+  .suggest-top:active{transform:translateY(0)}
   .sub{color:var(--muted);margin:8px 0 14px;font-size:14px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   button.vote{
@@ -55,11 +50,22 @@
   .msg{margin-top:12px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
   .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
-
-  /* Extra safety so small screens don't wrap awkwardly */
-  @media (max-width: 360px){
-    .suggest-btn{padding:6px 8px; font-size:11px}
-    .title{font-size:18px}
+  /* Bottom full-width CTA area */
+  .divider{height:1px;background:rgba(255,255,255,.08);margin:16px 0 12px}
+  .cta{
+    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  }
+  .cta-text{color:var(--muted); font-size:14px}
+  .cta-btn{
+    padding:10px 14px; font-size:14px; font-weight:700; border-radius:10px; border:none;
+    background:var(--link); color:#fff; cursor:pointer; transition:background .15s ease, transform .06s ease;
+  }
+  .cta-btn:hover{background:#2563eb; transform:translateY(-1px)}
+  .cta-btn:active{transform:translateY(0)}
+  .cta a{ text-decoration:none }
+  @media (max-width:420px){
+    .cta{flex-direction:column; align-items:stretch}
+    .cta-btn{width:100%}
   }
 </style>
 </head>
@@ -68,8 +74,8 @@
 <div class="card" role="region" aria-labelledby="h">
   <div class="header">
     <h1 id="h" class="title">Should the site have a huge redesign?</h1>
-    <a href="https://sites.google.com/view/staticquasar931/google-form" target="_blank" rel="noopener">
-      <button class="suggest-btn" type="button">💡 Suggest Changes</button>
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
+      <button class="suggest-top" type="button">💡 Suggest</button>
     </a>
   </div>
 
@@ -81,6 +87,15 @@
   </div>
 
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
+
+  <!-- Bottom full-width section -->
+  <div class="divider"></div>
+  <div class="cta">
+    <span class="cta-text">Have ideas for the redesign?</span>
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
+      <button class="cta-btn" type="button">✍️ Suggest Changes</button>
+    </a>
+  </div>
 </div>
 
 <script type="module">
@@ -131,7 +146,7 @@
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
-  // Ensure the tally doc exists (reads are allowed on /polls in Option A rules)
+  // Ensure the tally doc exists (reads allowed for /polls in your rules)
   (async () => {
     const tallyDoc = doc(db, "polls", POLL_ID);
     const snap = await getDoc(tallyDoc);
@@ -171,14 +186,14 @@
     }
   }
 
+  // Transaction that matches your Option-A rules and avoids reads to votes/*
   async function finalizeUpload(choice){
     const voteDoc  = doc(db, "polls", POLL_ID, "votes", deviceId);
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
-      // No reads to votes/* to satisfy rules
-      tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
-      tx.update(tallyDoc, { [choice]: increment(1) });
+      tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() }); // create-once
+      tx.update(tallyDoc, { [choice]: increment(1) }); // strict +1
     });
   }
 
