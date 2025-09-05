@@ -9,13 +9,18 @@
     --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
     --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;--link:#3b82f6;
   }
-  html,body{height:100%}
+  html,body{
+    height:100%;
+    margin:0;
+    overflow:hidden; /* disables scrolling */
+  }
   body{
-    margin:0;display:grid;place-items:center;background:var(--bg);color:var(--ink);
+    display:grid;place-items:center;
+    background:var(--bg);color:var(--ink);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   }
   .card{
-    width:min(517px,92vw); /* a touch narrower for fit */
+    width:min(517px,92vw);
     padding:18px;
     border-radius:18px;
     background: radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
@@ -50,7 +55,6 @@
   .msg{margin-top:12px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
   .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
-  /* Bottom full-width CTA area */
   .divider{height:1px;background:rgba(255,255,255,.08);margin:16px 0 12px}
   .cta{
     display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
@@ -88,7 +92,6 @@
 
   <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 
-  <!-- Bottom full-width section -->
   <div class="divider"></div>
   <div class="cta">
     <span class="cta-text">Have ideas for the redesign?</span>
@@ -146,7 +149,6 @@
   const already = localStorage.getItem(LOCK_KEY);
   if (already){ lock(already); }
 
-  // Ensure the tally doc exists (reads allowed for /polls in your rules)
   (async () => {
     const tallyDoc = doc(db, "polls", POLL_ID);
     const snap = await getDoc(tallyDoc);
@@ -186,14 +188,13 @@
     }
   }
 
-  // Transaction that matches your Option-A rules and avoids reads to votes/*
   async function finalizeUpload(choice){
     const voteDoc  = doc(db, "polls", POLL_ID, "votes", deviceId);
     const tallyDoc = doc(db, "polls", POLL_ID);
 
     await runTransaction(db, async (tx) => {
-      tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() }); // create-once
-      tx.update(tallyDoc, { [choice]: increment(1) }); // strict +1
+      tx.set(voteDoc, { choice, deviceId, votedAt: new Date().toISOString() });
+      tx.update(tallyDoc, { [choice]: increment(1) });
     });
   }
 
