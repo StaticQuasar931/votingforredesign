@@ -8,129 +8,122 @@
   :root{
     --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
     --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;--link:#3b82f6;
-    --neon:#39c2ff;         /* neon cyan that fits the dark theme */
-    --neon2:#7c3aed;        /* accent purple for depth */
-    --sites-bg:#c9c9c9;     /* outside Sites background (for contrast consideration) */
+    --neon:#39c2ff;--neon2:#7c3aed;
+    --scale:.82;            /* shrink most UI */
+    --cta-scale:1.06;       /* keep CTA slightly larger */
   }
+
   html,body{
-    height:100%;
-    margin:0;
-    overflow:hidden; /* disable scrolling */
-    background:var(--bg);
-    color:var(--ink);
+    height:100%; margin:0; overflow:hidden;
+    background:var(--bg); color:var(--ink);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   }
   body{ display:grid; place-items:center; }
 
   .card{
     width:min(517px,92vw);
-    padding:18px;
+    padding:16px;
     border-radius:18px;
     background:
       radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
       linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
-    box-shadow:
-      0 10px 40px rgba(0,0,0,.4),
-      inset 0 1px 0 rgba(255,255,255,.06);
+    box-shadow: 0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+    /* keep the SAME total room used */
+    min-height:420px;
+    display:flex; flex-direction:column; gap:12px;
   }
 
-  .header{display:flex; align-items:center; gap:12px}
+  /* Header (compact) */
+  .header{display:flex; align-items:center; gap:10px; transform:scale(var(--scale)); transform-origin:left center;}
   .title{
     flex:1 1 auto; min-width:0;
-    font-size:clamp(18px,2.4vw,22px); font-weight:800; letter-spacing:.2px; margin:0; line-height:1.25;
+    font-size:clamp(16px,2vw,19px); font-weight:800; letter-spacing:.2px; margin:0; line-height:1.2;
   }
   .suggest-top{
     flex:0 0 auto;
-    padding:6px 10px; font-size:12px; font-weight:600;
-    border-radius:8px; background:var(--link); color:#fff; border:none; cursor:pointer;
-    transition:background .15s ease, transform .06s ease; white-space:nowrap;
+    padding:5px 10px; font-size:11px; font-weight:800;
+    border-radius:8px; background:linear-gradient(90deg,#3b82f6,#60a5fa); color:#fff; border:none; cursor:pointer;
+    transition:transform .06s ease, filter .18s ease, box-shadow .18s ease;
   }
-  .suggest-top:hover{background:#2563eb;transform:translateY(-1px)}
-  .suggest-top:active{transform:translateY(0)}
+  .suggest-top:hover{transform:translateY(-1px); filter:brightness(1.06); box-shadow:0 0 10px rgba(59,130,246,.45)}
+  .sub{color:var(--muted);margin:2px 0 6px;font-size:12px; transform:scale(var(--scale)); transform-origin:left center;}
 
-  .sub{color:var(--muted);margin:8px 0 14px;font-size:14px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* Voting row (compact) */
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px; transform:scale(var(--scale)); transform-origin:center;}
   button.vote{
-    border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;cursor:pointer;
+    border:0;border-radius:14px;padding:11px 12px;font-weight:900;font-size:14px;cursor:pointer;
     transition:transform .06s ease, box-shadow .18s ease, filter .18s ease; outline: none; color:#0b1117;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.15);
   }
   button.vote:focus-visible{box-shadow:0 0 0 3px var(--ring),0 0 0 6px rgba(45,108,223,.35)}
-  button.vote:hover{filter:brightness(1.03);transform:translateY(-1px)}
-  button.vote:active{transform:translateY(0)}
+  button.vote:hover{filter:brightness(1.05);transform:translateY(-1px)}
   .yes{background:var(--yes)}
   .no{background:var(--no);color:#fff}
-  .msg{margin-top:12px;padding:10px 12px;border-radius:12px;font-size:14px;display:none}
+
+  /* Live tally (useful; replaces filler) */
+  .tally{
+    margin-top:6px; border-radius:12px; padding:10px 12px;
+    background:rgba(255,255,255,.03); outline:1px solid rgba(255,255,255,.06);
+  }
+  .tally-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .tally-title{font-size:13px; color:#cfe1ff; font-weight:800; letter-spacing:.2px}
+  .tally-numbers{font-size:12px; color:var(--muted)}
+  .bar{
+    margin-top:8px; height:12px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; position:relative;
+  }
+  .bar-yes,.bar-no{position:absolute; top:0; bottom:0;}
+  .bar-yes{left:0; width:0%; background:linear-gradient(90deg,#16a34a,var(--yes));}
+  .bar-no{right:0; width:0%; background:linear-gradient(90deg,var(--no),#7f1d1d);}
+  .labels{display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--muted)}
+  .labels b{color:#e8f3ff}
+
+  .msg{margin-top:8px;padding:8px 10px;border-radius:12px;font-size:13px;display:none;}
   .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
 
-  .divider{height:1px;background:rgba(255,255,255,.08);margin:16px 0 12px}
+  .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0 4px}
 
-  /* ===== Neon CTA section (stands out, on-theme) ===== */
+  /* CTA (one clear action, brighter, not noisy) */
   .cta-wrap{
-    position:relative;
-    border-radius:14px;
-    padding:12px;
-    background:rgba(20,26,33,.6);
-    overflow:hidden;
-    isolation:isolate; /* keep glow inside */
+    position:relative; border-radius:16px; padding:0;
+    transform:scale(var(--cta-scale)); transform-origin:center; isolation:isolate;
   }
-  /* animated neon border */
   .cta-wrap::before{
-    content:"";
-    position:absolute; inset:-2px;
-    border-radius:16px;
-    background: conic-gradient(from 0deg,
-      rgba(57,194,255,.0) 0%,
-      rgba(57,194,255,.9) 20%,
-      rgba(124,58,237,.8) 40%,
-      rgba(57,194,255,.9) 60%,
-      rgba(124,58,237,.8) 80%,
-      rgba(57,194,255,.0) 100%);
-    filter:blur(8px);
-    z-index:-1;
-    animation: spin 6s linear infinite;
-    opacity:.85;
+    content:""; position:absolute; inset:-3px; border-radius:18px;
+    background:conic-gradient(from 0deg, rgba(57,194,255,0) 0%, rgba(57,194,255,.95) 18%, rgba(124,58,237,.9) 36%, rgba(57,194,255,.95) 54%, rgba(124,58,237,.9) 72%, rgba(57,194,255,0) 100%);
+    filter:blur(10px); z-index:0; animation:spin 5.2s linear infinite; opacity:.95;
   }
   .cta{
-    position:relative;
+    position:relative; z-index:1;
     display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    padding:10px 12px;
-    border-radius:12px;
+    padding:14px 16px; border-radius:14px;
     background:
-      radial-gradient(120px 40px at 10% 10%, rgba(57,194,255,.20), transparent 70%),
-      radial-gradient(140px 50px at 90% 80%, rgba(124,58,237,.18), transparent 70%),
-      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-    box-shadow:
-      0 0 18px rgba(57,194,255,.28),
-      inset 0 0 0 1px rgba(57,194,255,.25);
-    backdrop-filter: blur(6px);
+      radial-gradient(120px 60px at 8% 15%, rgba(57,194,255,.30), transparent 70%),
+      radial-gradient(200px 80px at 92% 85%, rgba(124,58,237,.28), transparent 70%),
+      linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+    box-shadow:0 0 30px rgba(57,194,255,.55), 0 0 42px rgba(124,58,237,.45), inset 0 0 0 1px rgba(57,194,255,.45);
+    backdrop-filter: blur(9px);
+    min-height:150px;
   }
-  .cta-text{
-    color:#cfeaff;
-    text-shadow: 0 0 6px rgba(57,194,255,.6);
-    font-size:15px; font-weight:700; letter-spacing:.2px;
-  }
+  .cta-left{display:flex; flex-direction:column; gap:6px; min-width:220px}
+  .cta-headline{font-size:18px; font-weight:1000; color:#f0fbff; text-shadow:0 0 10px rgba(57,194,255,.85)}
+  .cta-sub{font-size:13px; color:#d7ecff}
   .cta-btn{
-    padding:10px 14px; font-size:14px; font-weight:800; border-radius:10px; border:none;
-    background:linear-gradient(90deg, var(--neon), var(--neon2));
-    color:#06131a; cursor:pointer;
-    box-shadow: 0 0 14px rgba(57,194,255,.55), 0 0 24px rgba(124,58,237,.45);
-    transition: transform .06s ease, filter .18s ease;
+    padding:12px 16px; font-size:15px; font-weight:1000; border-radius:12px; border:none;
+    background:linear-gradient(90deg,#7df0ff 0%,#39c2ff 35%,#7c3aed 100%);
+    color:#041017; cursor:pointer;
+    box-shadow:0 0 20px rgba(57,194,255,.8), 0 0 36px rgba(124,58,237,.6);
+    transition: transform .06s ease, filter .18s ease, box-shadow .18s ease;
   }
-  .cta-btn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
-  .cta-btn:active{ transform:translateY(0); }
+  .cta-btn:hover{ transform:translateY(-1px); filter:brightness(1.08); box-shadow:0 0 26px rgba(57,194,255,.95), 0 0 48px rgba(124,58,237,.75); }
   .cta a{ text-decoration:none }
 
   @keyframes spin{ to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .cta-wrap::before{ animation:none } }
 
-  /* Respect reduced motion */
-  @media (prefers-reduced-motion: reduce){
-    .cta-wrap::before{ animation:none }
-  }
-
-  @media (max-width:420px){
-    .cta{flex-direction:column; align-items:stretch}
+  @media (max-width:480px){
+    .cta{flex-direction:column; align-items:stretch; min-height:unset}
     .cta-btn{width:100%}
   }
 </style>
@@ -138,30 +131,50 @@
 <body>
 
 <div class="card" role="region" aria-labelledby="h">
-  <div class="header">
-    <h1 id="h" class="title">Should the site have a huge redesign?</h1>
-    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfFiegPH6GsWIWERzfbtptJW2GMk4exkrTQsdqlR2-2oj83zA/viewform" target="_blank" rel="noopener">
-      <button class="suggest-top" type="button">💡 Suggest Games</button>
-    </a>
+  <div>
+    <div class="header">
+      <h1 id="h" class="title">Should the site have a huge redesign?</h1>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfFiegPH6GsWIWERzfbtptJW2GMk4exkrTQsdqlR2-2oj83zA/viewform" target="_blank" rel="noopener">
+        <button class="suggest-top" type="button">💡 Suggest Games</button>
+      </a>
+    </div>
+
+    <p class="sub">You can vote once per device.</p>
+
+    <div class="row">
+      <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
+      <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
+    </div>
+
+    <!-- Useful: live tally (no filler) -->
+    <div class="tally" aria-live="polite">
+      <div class="tally-head">
+        <div class="tally-title">Current results</div>
+        <div id="totals" class="tally-numbers">—</div>
+      </div>
+      <div class="bar" role="img" aria-label="Live results bar">
+        <div id="barYes" class="bar-yes"></div>
+        <div id="barNo"  class="bar-no"></div>
+      </div>
+      <div class="labels">
+        <span>Yes: <b id="pYes">—</b></span>
+        <span>No: <b id="pNo">—</b></span>
+      </div>
+    </div>
+
+    <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
+    <div class="divider"></div>
   </div>
 
-  <p class="sub">You can vote once per device.</p>
-
-  <div class="row">
-    <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
-    <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
-  </div>
-
-  <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
-
-  <div class="divider"></div>
-
-  <!-- Neon bottom CTA block -->
+  <!-- Single clear CTA (uses saved space, no fake buttons) -->
   <div class="cta-wrap" aria-label="Suggest redesign changes">
     <div class="cta">
-      <span class="cta-text">Have ideas for the redesign?</span>
+      <div class="cta-left">
+        <div class="cta-headline">Have a specific suggestion?</div>
+        <div class="cta-sub">Tell us any change, idea, or even theme!</div>
+      </div>
       <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
-        <button class="cta-btn" type="button">✍️ Suggest Changes</button>
+        <button class="cta-btn" type="button" aria-label="Open form to suggest a redesign change">✍️ Submit an idea</button>
       </a>
     </div>
   </div>
@@ -169,7 +182,9 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getFirestore, doc, runTransaction, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import {
+    getFirestore, doc, runTransaction, increment, getDoc, setDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
@@ -187,6 +202,12 @@
   const btnYes = document.getElementById("yes");
   const btnNo  = document.getElementById("no");
   const msg    = document.getElementById("msg");
+
+  const totalsEl = document.getElementById("totals");
+  const barYes = document.getElementById("barYes");
+  const barNo  = document.getElementById("barNo");
+  const pYes   = document.getElementById("pYes");
+  const pNo    = document.getElementById("pNo");
 
   const DEVICE_KEY  = "qr_device_id";
   const PENDING_KEY = "qr_pending_vote";
@@ -212,15 +233,35 @@
     msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
   }
 
-  const already = localStorage.getItem(LOCK_KEY);
-  if (already){ lock(already); }
-
-  // Ensure totals doc exists (allowed by rules)
+  // Keep the totals doc present
   (async () => {
     const tallyDoc = doc(db, "polls", POLL_ID);
     const snap = await getDoc(tallyDoc);
     if (!snap.exists()) await setDoc(tallyDoc, { yes: 0, no: 0 });
   })().catch(console.error);
+
+  // Live results subscription (useful, zero extra clicks)
+  const tallyDoc = doc(db, "polls", POLL_ID);
+  onSnapshot(tallyDoc, (snap) => {
+    const data = snap.data() || { yes: 0, no: 0 };
+    const yes = Math.max(0, data.yes|0);
+    const no  = Math.max(0, data.no|0);
+    const total = yes + no;
+    totalsEl.textContent = total ? `${yes} yes · ${no} no · ${total} total` : "No votes yet";
+    const yPct = total ? Math.round((yes/total)*100) : 0;
+    const nPct = total ? Math.round((no /total)*100) : 0;
+    barYes.style.width = yPct + "%";
+    barNo .style.width = nPct + "%";
+    pYes.textContent = total ? yPct + "%" : "—";
+    pNo .textContent = total ? nPct + "%" : "—";
+  }, (err) => {
+    console.error("Snapshot error:", err);
+    totalsEl.textContent = "Live results unavailable";
+  });
+
+  // Already voted?
+  const already = localStorage.getItem(LOCK_KEY);
+  if (already){ lock(already); }
 
   // Resume any pending local vote
   const pendingRaw = localStorage.getItem(PENDING_KEY);
