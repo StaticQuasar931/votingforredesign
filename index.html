@@ -8,20 +8,26 @@
   :root{
     --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
     --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;
+    --blue1:#3b82f6; --blue2:#60a5fa;
+    --vio1:#6366f1;  --vio2:#8b5cf6;
   }
-  html,body{
-    height:100%; margin:0; background:var(--bg); color:var(--ink);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+
+  /* Disable scrolling both directions */
+  html, body { height:100%; overflow:hidden; }
+  html { background:var(--bg); color:var(--ink); }
+  body{
+    margin:0;
+    display:grid; place-items:center;
   }
-  body{ display:grid; place-items:center; padding:16px; }
 
   .card{
-    width:min(1200px,98vw);
+    width:min(1200px,96vw);
     border-radius:16px;
     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
     padding:14px;
+    margin:12px; /* inner gutter so no scrollbars */
   }
 
   .layout{
@@ -32,10 +38,8 @@
     min-height:460px;
   }
 
-  /* LEFT COLUMN */
-  .left{
-    display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;
-  }
+  /* LEFT */
+  .left{display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;}
   .title{margin:0; font-size:clamp(20px,2.2vw,26px); font-weight:900; line-height:1.2;}
   .sub{color:var(--muted); margin:0; font-size:13px}
 
@@ -57,7 +61,7 @@
   .ok{background:rgba(45,108,223,.14); border:1px solid rgba(45,108,223,.35)}
   .warn{background:rgba(239,68,68,.14); border:1px solid rgba(239,68,68,.35)}
 
-  /* BIG VOTE BUTTONS (full width of their half) */
+  /* BIG vote buttons (fill their halves) */
   .row{
     display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:2px;
   }
@@ -71,21 +75,30 @@
   .yes{background:var(--yes); color:#041307}
   .no{background:var(--no); color:#fff}
 
-  /* EXPANDING INFO TEXT: fills remaining vertical space on the left */
-  .info-wrap{
-    flex:1 1 auto; min-height:0; /* allow it to grow and take remaining room */
-    display:flex;
-  }
+  /* EXPANDING INFO TEXT (1.5x size & bold; fills remaining space) */
+  .info-wrap{flex:1 1 auto; min-height:0; display:flex;}
   .info-text{
-    font-size:clamp(15px,1.2vw,18px);
-    color:#e9f2ff; line-height:1.5;
+    font-size:clamp(24px,2.4vw,30px); /* ~1.5x from earlier */
+    font-weight:900;                   /* bold */
+    color:#e9f2ff; line-height:1.45;
     background:rgba(255,255,255,.03);
-    padding:14px; border-radius:10px; width:100%;
+    padding:16px; border-radius:10px; width:100%;
     outline:1px solid rgba(255,255,255,.06);
   }
-  .info-text a{ color:#9cc7ff; text-underline-offset:2px }
+  .info-text a{ color:#9cc7ff; text-underline-offset:2px; font-weight:900 }
 
-  /* RIGHT COLUMN (image fills area and centers) */
+  /* BIG suggestion buttons (blue & purple), full halves under the text */
+  .row-cta{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .cta{
+    width:100%; border:0; border-radius:14px; padding:18px 16px;
+    font-weight:1000; font-size:17px; cursor:pointer; color:#041017;
+    transition:transform .08s ease, filter .18s ease; box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)
+  }
+  .cta:hover{ transform:translateY(-2px); filter:brightness(1.07) }
+  .cta-blue{  background:linear-gradient(90deg,var(--blue1),var(--blue2)); color:#eaf6ff; }
+  .cta-purple{background:linear-gradient(90deg,var(--vio1), var(--vio2));  color:#f3ecff; }
+
+  /* RIGHT (image) */
   .right{
     position:relative; display:flex; align-items:center; justify-content:center;
     border-radius:12px; overflow:hidden; outline:1px solid rgba(255,255,255,.08);
@@ -103,6 +116,7 @@
   @media(max-width:900px){
     .layout{grid-template-columns:1fr}
     .info-wrap{min-height:auto}
+    .row, .row-cta{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -131,22 +145,29 @@
 
       <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
 
-      <!-- BIGGER BUTTONS under the feedback/status -->
+      <!-- BIG vote buttons -->
       <div class="row" aria-label="Vote on theme">
         <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
         <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
       </div>
 
-      <!-- EXPANDING INFO TEXT (fills remaining vertical space on the left) -->
+      <!-- EXPANDING info text (bold, 1.5x size) -->
       <div class="info-wrap">
         <div class="info-text">
-          What colors should the background be? What colors do you think would be best?
-          Fill out our Google Form for a chance at a shout-out | This won’t be the only redesign change, more coming soon!
-          <br /><br />
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
-            → Submit your color ideas
-          </a>
+          What colors should the background be? What colors do you think would be best? 
+          Fill out our <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">Google Form</a> for a chance at a shout-out | 
+          This won’t be the only redesign change, more coming soon!
         </div>
+      </div>
+
+      <!-- BIG suggestion buttons (blue & purple) -->
+      <div class="row-cta">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfFiegPH6GsWIWERzfbtptJW2GMk4exkrTQsdqlR2-2oj83zA/viewform" target="_blank" rel="noopener">
+          <button class="cta cta-blue" type="button" aria-label="Open form to suggest games">💡 Suggest Games</button>
+        </a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
+          <button class="cta cta-purple" type="button" aria-label="Open form to suggest redesign ideas">🛠️ Suggest Redesign Ideas</button>
+        </a>
       </div>
     </section>
 
@@ -169,7 +190,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getFirestore, doc, runTransaction, increment, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // Firebase config (same project)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -200,11 +221,11 @@
 
   // Local device & per-poll keys (so prior polls don’t block this one)
   const DEVICE_KEY  = "qr_device_id";
-  const PENDING_KEY = "qr_pending_vote_img_v5";
-  const LOCK_KEY    = "qr_voted_choice_img_v5";
+  const PENDING_KEY = "qr_pending_vote_img_v7";
+  const LOCK_KEY    = "qr_voted_choice_img_v7";
 
   // NEW poll id so it registers as another voting (aligned with your /polls rules)
-  const POLL_ID = "design_screenshot_diuzmd_v5";
+  const POLL_ID = "design_screenshot_diuzmd_v7";
 
   // Firestore paths per your rules (single tally doc + votes subcollection)
   const tallyDoc = doc(db, "polls", POLL_ID);
@@ -309,6 +330,48 @@
       return "Your vote is saved locally and uploading. Leave now?";
     }
   };
+</script>
+
+<!-- Copy/paste these Firestore Security Rules into Firebase Console (Rules tab).
+     Including here for completeness as requested; this block is NOT executed by the page. -->
+<script id="firestore-rules" type="text/plain">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /polls/{pollId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasOnly(['yes','no']) &&
+        request.resource.data.yes == 0 &&
+        request.resource.data.no == 0;
+
+      allow update: if
+        request.resource.data.keys().hasOnly(['yes','no']) &&
+        resource.data.keys().hasOnly(['yes','no']) &&
+        request.resource.data.yes >= resource.data.yes &&
+        request.resource.data.no >= resource.data.no &&
+        (
+          (request.resource.data.yes - resource.data.yes == 1 &&
+           request.resource.data.no  - resource.data.no  == 0) ||
+          (request.resource.data.yes - resource.data.yes == 0 &&
+           request.resource.data.no  - resource.data.no  == 1)
+        );
+      allow delete: if false;
+
+      match /votes/{deviceId} {
+        allow read: if false;
+        allow create: if
+          request.resource.data.keys().hasOnly(['choice','deviceId','votedAt']) &&
+          request.resource.data.deviceId == deviceId &&
+          !exists(/databases/$(database)/documents/polls/$(pollId)/votes/$(deviceId)) &&
+          (request.resource.data.choice == 'yes' || request.resource.data.choice == 'no');
+        allow update, delete: if false;
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
 </script>
 </body>
 </html>
