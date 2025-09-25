@@ -7,142 +7,161 @@
 <style>
   :root{
     --bg:#0f1216;--card:#141a21;--ink:#e6edf3;--muted:#9fb0c3;
-    --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;--link:#3b82f6;
-    --scale:.92;
+    --yes:#22c55e;--no:#ef4444;--ring:#2d6cdf;
   }
   html,body{
-    height:100%; margin:0; overflow:hidden;
-    background:var(--bg); color:var(--ink);
+    height:100%; margin:0; background:var(--bg); color:var(--ink);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   }
-  body{ display:grid; place-items:center; }
+  body{ display:grid; place-items:center; padding:16px; }
+
   .card{
-    width:min(640px,94vw);
-    padding:16px; border-radius:18px;
-    background:
-      radial-gradient(1200px 300px at -10% -20%,rgba(45,108,223,.12),transparent 60%),
-      linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    width:min(1200px,98vw);
+    border-radius:16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
     box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
-    min-height:420px; display:flex; flex-direction:column; gap:12px;
+    padding:14px;
   }
 
-  .header{display:flex; align-items:center; gap:10px; transform:scale(var(--scale)); transform-origin:left center;}
-  .title{flex:1 1 auto; min-width:0; font-size:clamp(16px,2vw,20px); font-weight:900; margin:0; line-height:1.2;}
-  .btn{
-    padding:6px 10px; font-size:11px; font-weight:800; border-radius:8px;
-    border:none; cursor:pointer; color:#fff;
-    background:linear-gradient(90deg,#3b82f6,#60a5fa);
-    transition:transform .06s ease, filter .18s ease, box-shadow .18s ease;
+  .layout{
+    display:grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap:14px;
+    align-items:stretch;
+    min-height:460px;
   }
-  .btn:hover{transform:translateY(-1px); filter:brightness(1.06); box-shadow:0 0 10px rgba(59,130,246,.45)}
-  .btn-ghost{
-    margin-top:8px;
-    background:linear-gradient(90deg,#6366f1,#8b5cf6);
-  }
-  .sub{color:var(--muted);margin:2px 0 6px;font-size:12px; transform:scale(var(--scale)); transform-origin:left center;}
 
-  /* Image + overlay */
-  .shot{
-    position:relative; border-radius:14px; overflow:hidden;
-    outline:1px solid rgba(255,255,255,.08); background:#0c1116;
-    transform:scale(var(--scale)); transform-origin:center;
+  /* LEFT COLUMN */
+  .left{
+    display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;
   }
-  .shot img{
-    width:100%; height:auto; display:block;
-    max-height:min(82vh,1280px); /* a bit bigger */
-    object-fit:contain; cursor:zoom-in; transition:filter .18s ease;
-  }
-  .shot img:hover{ filter:brightness(1.03) }
-  .open-btn{
-    position:absolute; top:10px; right:10px;
-    padding:6px 10px; font-weight:800; font-size:12px; border-radius:10px; border:1px solid rgba(255,255,255,.32);
-    background:rgba(6,12,18,.55); color:#e9f2ff; backdrop-filter: blur(6px);
-    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
-    transition:filter .18s ease, transform .06s ease, box-shadow .18s ease;
-  }
-  .open-btn:hover{ filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 0 10px rgba(0,0,0,.35); }
+  .title{margin:0; font-size:clamp(20px,2.2vw,26px); font-weight:900; line-height:1.2;}
+  .sub{color:var(--muted); margin:0; font-size:13px}
 
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px; transform:scale(var(--scale)); transform-origin:center;}
-  .vote{
-    border:0;border-radius:14px;padding:12px 12px;font-weight:900;font-size:15px;cursor:pointer; color:#0b1117;
-    box-shadow: inset 0 -2px 0 rgba(0,0,0,.15);
-    transition:transform .06s ease, box-shadow .18s ease, filter .18s ease;
+  .tally{
+    border-radius:10px; padding:12px;
+    background:rgba(255,255,255,.03); outline:1px solid rgba(255,255,255,.06);
   }
-  .vote:focus-visible{box-shadow:0 0 0 3px var(--ring),0 0 0 6px rgba(45,108,223,.35)}
-  .vote:hover{filter:brightness(1.05);transform:translateY(-1px)}
-  .yes{background:var(--yes)} .no{background:var(--no);color:#fff}
-
-  .tally{margin-top:6px; border-radius:12px; padding:10px 12px; background:rgba(255,255,255,.03); outline:1px solid rgba(255,255,255,.06);}
-  .tally-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
-  .tally-title{font-size:13px; color:#cfe1ff; font-weight:800; letter-spacing:.2px}
-  .tally-numbers{font-size:12px; color:var(--muted)}
-  .bar{margin-top:8px; height:12px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; position:relative;}
-  .bar-yes,.bar-no{position:absolute; top:0; bottom:0; transition:width .3s cubic-bezier(.22,.61,.36,1)}
-  .bar-yes{left:0; width:0%; background:linear-gradient(90deg,#16a34a,var(--yes));}
-  .bar-no{right:0; width:0%; background:linear-gradient(90deg,var(--no),#7f1d1d);}
+  .t-head{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .t-title{font-size:14px; color:#cfe1ff; font-weight:800; letter-spacing:.2px}
+  .t-numbers{font-size:13px; color:var(--muted)}
+  .bar{margin-top:10px; height:14px; border-radius:999px; background:rgba(255,255,255,.06); position:relative; overflow:hidden}
+  .bar-yes,.bar-no{position:absolute; top:0; bottom:0; transition:width .28s cubic-bezier(.22,.61,.36,1)}
+  .bar-yes{left:0; background:linear-gradient(90deg,#16a34a,var(--yes))}
+  .bar-no{right:0; background:linear-gradient(90deg,var(--no),#7f1d1d)}
   .labels{display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--muted)}
   .labels b{color:#e8f3ff}
 
-  .msg{margin-top:8px;padding:8px 10px;border-radius:12px;font-size:13px;display:none;}
-  .ok{background:rgba(45,108,223,.14);border:1px solid rgba(45,108,223,.35)}
-  .warn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35)}
-  .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0 4px}
+  .msg{padding:10px 12px; border-radius:10px; font-size:14px; display:none;}
+  .ok{background:rgba(45,108,223,.14); border:1px solid rgba(45,108,223,.35)}
+  .warn{background:rgba(239,68,68,.14); border:1px solid rgba(239,68,68,.35)}
+
+  /* BIG VOTE BUTTONS (full width of their half) */
+  .row{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:2px;
+  }
+  .vote{
+    width:100%;
+    border:0; border-radius:14px; padding:20px 16px;
+    font-weight:1000; font-size:18px; cursor:pointer;
+    transition:transform .08s ease, filter .18s ease; box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)
+  }
+  .vote:hover{transform:translateY(-2px); filter:brightness(1.08)}
+  .yes{background:var(--yes); color:#041307}
+  .no{background:var(--no); color:#fff}
+
+  /* EXPANDING INFO TEXT: fills remaining vertical space on the left */
+  .info-wrap{
+    flex:1 1 auto; min-height:0; /* allow it to grow and take remaining room */
+    display:flex;
+  }
+  .info-text{
+    font-size:clamp(15px,1.2vw,18px);
+    color:#e9f2ff; line-height:1.5;
+    background:rgba(255,255,255,.03);
+    padding:14px; border-radius:10px; width:100%;
+    outline:1px solid rgba(255,255,255,.06);
+  }
+  .info-text a{ color:#9cc7ff; text-underline-offset:2px }
+
+  /* RIGHT COLUMN (image fills area and centers) */
+  .right{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; overflow:hidden; outline:1px solid rgba(255,255,255,.08);
+    background:#0c1116; min-height:320px;
+  }
+  .shot{width:100%; height:100%; display:grid; place-items:center; padding:6px;}
+  .shot img{width:100%; height:100%; object-fit:contain; display:block}
+  .open-btn{
+    position:absolute; top:10px; right:10px; padding:6px 10px; font-size:12px; font-weight:800;
+    border-radius:10px; border:1px solid rgba(255,255,255,.32);
+    background:rgba(6,12,18,.55); color:#e9f2ff; backdrop-filter: blur(6px);
+    cursor:pointer;
+  }
+
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr}
+    .info-wrap{min-height:auto}
+  }
 </style>
 </head>
 <body>
+<div class="card" role="region" aria-labelledby="title">
+  <div class="layout">
+    <!-- LEFT -->
+    <section class="left">
+      <h1 id="title" class="title">Do you like this theme? (should we change to this)</h1>
+      <p class="sub">One vote per device.</p>
 
-<div class="card" role="region" aria-labelledby="h">
-  <div>
-    <div class="header">
-      <h1 id="h" class="title">Do you like this theme? (should we change to this)</h1>
-      <div style="display:flex; flex-direction:column; align-items:flex-end;">
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfFiegPH6GsWIWERzfbtptJW2GMk4exkrTQsdqlR2-2oj83zA/viewform" target="_blank" rel="noopener">
-          <button class="btn" type="button">💡 Suggest Games</button>
-        </a>
-        <!-- Under Suggest Games -->
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
-          <button class="btn btn-ghost" type="button">🛠️ Suggest Redesign Idea</button>
-        </a>
+      <section class="tally" aria-live="polite">
+        <div class="t-head">
+          <div class="t-title">Current rating</div>
+          <div id="totals" class="t-numbers">—</div>
+        </div>
+        <div class="bar" role="img" aria-label="Live vote distribution by percent">
+          <div id="barYes" class="bar-yes" style="width:0%"></div>
+          <div id="barNo"  class="bar-no"  style="width:0%"></div>
+        </div>
+        <div class="labels">
+          <span>Yes: <b id="pYes">—</b></span>
+          <span>No: <b id="pNo">—</b></span>
+        </div>
+      </section>
+
+      <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
+
+      <!-- BIGGER BUTTONS under the feedback/status -->
+      <div class="row" aria-label="Vote on theme">
+        <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
+        <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
       </div>
-    </div>
 
-    <p class="sub">You can vote once per device. Click the image or the button to open full size.</p>
-
-    <!-- Image with overlay "View Full Size" -->
-    <figure class="shot">
-      <img
-        id="preview"
-        src="https://res.cloudinary.com/dcsrqennd/image/upload/v1758837156/Screenshot_2025-09-25_145121_diuzmd.png"
-        alt="Screenshot of the proposed Static931 theme showing homepage layout, navigation bar, hero section, and content tiles"
-        loading="eager" decoding="async"
-      />
-      <button id="openFull" class="open-btn" type="button" aria-label="Open full-size image in a new tab">🔍 View Full Size</button>
-    </figure>
-
-    <div class="row">
-      <button id="yes" class="vote yes" type="button" aria-label="Vote Yes">👍 Yes</button>
-      <button id="no"  class="vote no"  type="button" aria-label="Vote No">👎 No</button>
-    </div>
-
-    <!-- Live tally -->
-    <div class="tally" aria-live="polite">
-      <div class="tally-head">
-        <div class="tally-title">Current rating</div>
-        <div id="totals" class="tally-numbers">—</div>
+      <!-- EXPANDING INFO TEXT (fills remaining vertical space on the left) -->
+      <div class="info-wrap">
+        <div class="info-text">
+          What colors should the background be? What colors do you think would be best?
+          Fill out our Google Form for a chance at a shout-out | This won’t be the only redesign change, more coming soon!
+          <br /><br />
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfWkJmq5rk10-AETybm7hJPQ2M75gMGm2OWsbiS_XrqMI9l0g/viewform?usp=header" target="_blank" rel="noopener">
+            → Submit your color ideas
+          </a>
+        </div>
       </div>
-      <div class="bar" role="img" aria-label="Live results bar">
-        <div id="barYes" class="bar-yes"></div>
-        <div id="barNo"  class="bar-no"></div>
-      </div>
-      <div class="labels">
-        <span>Yes: <b id="pYes">—</b></span>
-        <span>No: <b id="pNo">—</b></span>
-      </div>
-    </div>
+    </section>
 
-    <div id="msg" class="msg ok" role="status" aria-live="polite"></div>
-    <div class="divider"></div>
+    <!-- RIGHT -->
+    <aside class="right">
+      <button id="openFull" class="open-btn" type="button" aria-label="Open full-size image in a new tab">🔍 View Full</button>
+      <figure class="shot">
+        <img
+          id="preview"
+          src="https://res.cloudinary.com/dcsrqennd/image/upload/v1758837156/Screenshot_2025-09-25_145121_diuzmd.png"
+          alt="Screenshot of the proposed Static931 theme with homepage layout, navigation, and hero"
+          loading="eager" decoding="async"
+        />
+      </figure>
+    </aside>
   </div>
 </div>
 
@@ -150,7 +169,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
   import { getFirestore, doc, runTransaction, increment, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  // Firebase (same project)
+  // Firebase config (same project)
   const firebaseConfig = {
     apiKey: "AIzaSyCFkdHG5na9uhLQwu65QTuOvELmA68MCKA",
     authDomain: "votingonredesign.firebaseapp.com",
@@ -169,7 +188,7 @@
   document.getElementById("openFull").addEventListener("click", () => window.open(fullUrl, "_blank", "noopener"));
   document.getElementById("preview").addEventListener("click",   () => window.open(fullUrl, "_blank", "noopener"));
 
-  // UI
+  // UI refs
   const btnYes = document.getElementById("yes");
   const btnNo  = document.getElementById("no");
   const msg    = document.getElementById("msg");
@@ -179,19 +198,19 @@
   const pYes   = document.getElementById("pYes");
   const pNo    = document.getElementById("pNo");
 
-  // Stable device id across polls; NEW keys for THIS poll to allow re-vote on new poll
+  // Local device & per-poll keys (so prior polls don’t block this one)
   const DEVICE_KEY  = "qr_device_id";
-  const PENDING_KEY = "qr_pending_vote_img_v4";
-  const LOCK_KEY    = "qr_voted_choice_img_v4";
+  const PENDING_KEY = "qr_pending_vote_img_v5";
+  const LOCK_KEY    = "qr_voted_choice_img_v5";
 
-  // NEW poll id so it counts as another voting
-  const POLL_ID = "design_screenshot_diuzmd_v4";
+  // NEW poll id so it registers as another voting (aligned with your /polls rules)
+  const POLL_ID = "design_screenshot_diuzmd_v5";
 
-  // Paths per your rules
+  // Firestore paths per your rules (single tally doc + votes subcollection)
   const tallyDoc = doc(db, "polls", POLL_ID);
   const voteDoc  = (deviceId) => doc(db, "polls", POLL_ID, "votes", deviceId);
 
-  // Device id
+  // Stable device id across polls
   const uuid = () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
   const deviceId = (() => {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -201,19 +220,21 @@
 
   function lock(choice, text){
     btnYes.disabled = true; btnNo.disabled = true;
-    btnYes.style.opacity=".65"; btnNo.style.opacity=".65";
+    btnYes.style.opacity=".7"; btnNo.style.opacity=".7";
     msg.className = "msg ok"; msg.style.display="block";
     msg.textContent = text || `You already voted “${choice.toUpperCase()}”.`;
   }
-  function showWarn(text){ msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text; }
+  function showWarn(text){
+    msg.className = "msg warn"; msg.style.display="block"; msg.textContent = text;
+  }
 
-  // Ensure the /polls/{pollId} doc exists with {yes:0, no:0}
+  // Ensure tally doc exists with {yes:0, no:0}
   (async () => {
     const snap = await getDoc(tallyDoc);
-    if (!snap.exists()) await setDoc(tallyDoc, { yes: 0, no: 0 }); // matches your `create` rule
+    if (!snap.exists()) await setDoc(tallyDoc, { yes: 0, no: 0 }); // matches your create rule
   })().catch(console.error);
 
-  // Live percentage UI (we compute % locally; don’t show raw totals)
+  // Live percentage UI
   onSnapshot(tallyDoc, (snap) => {
     const data = snap.data() || { yes: 0, no: 0 };
     const yes = Math.max(0, data.yes|0);
@@ -263,7 +284,7 @@
       lock(choice, `Thanks! Your “${choice.toUpperCase()}” vote was recorded.`);
     } catch (e){
       if (e.code === "permission-denied") {
-        // Either duplicate vote or rules block — treat as already voted for UX
+        // Rules rejected (duplicate or blocked) — treat as already voted for UX
         localStorage.setItem(LOCK_KEY, choice);
         lock(choice, "Looks like you already voted on this device.");
       } else {
@@ -273,23 +294,16 @@
     }
   }
 
-  // Matches your rules:
-  // - NO reads of /votes/*
-  // - Create /votes/{deviceId} with exactly {choice, deviceId, votedAt}
-  // - Update /polls/{pollId} to increment exactly one of yes/no by +1
+  // Matches your rules: no reads on /votes/*; create once; increment exactly one counter
   async function finalizeUpload(choice){
     const vDoc = voteDoc(deviceId);
-
     await runTransaction(db, async (tx) => {
-      // Do NOT tx.get(vDoc) (your rules forbid read). Just try to create.
       tx.set(vDoc, { choice, deviceId, votedAt: new Date().toISOString() });
-
-      // Increment exactly one field per write (your update rule enforces this)
       tx.update(tallyDoc, { [choice]: increment(1) });
     });
   }
 
-  // Leave guard (this poll only)
+  // Guard
   window.onbeforeunload = function(){
     if (!localStorage.getItem(LOCK_KEY) && localStorage.getItem(PENDING_KEY)){
       return "Your vote is saved locally and uploading. Leave now?";
